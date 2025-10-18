@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from sqlalchemy.orm import Session
+from json import loads, dumps
 # 
 from database.database import User, MainСity, engine
 from keyboard.reply_kb import keyboards_text
@@ -73,11 +74,10 @@ async def to_know_weather(message: types.Message):
             _user_city = session.query(MainСity).filter_by(user_id=message.from_user.id).first()
             if _user_city is not None:
                 # Выводим погоду в городе
-                weather_info = await get_weather(_user_city.city_name)
-                await message.answer(weather_info)
+                await message.answer(await get_weather(_user_city.city_name))
             else:
                 # говорим добавить город
-                await message.answer('говорим добавить город "/add_city"')
+                await message.answer('Введи команду: "/weather"')
     except Exception as e:
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
