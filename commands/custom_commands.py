@@ -12,6 +12,7 @@ from main_func.the_weather import get_weather
 
 class City(StatesGroup):
     wait_city = State()
+    wait_new_city = State()
 
 redis_client = Redis() # Заменить при деплое
 user_router = Router()
@@ -35,7 +36,7 @@ async def command_start(message: types.Message):
 
   
 # Комманда для входа в состояние добавления города
-@user_router.message(F.text == 'add_city')
+@user_router.message(Command('add_city'))
 async def add_city(message: types.Message, state: FSMContext):
     try:
         with Session(engine) as session:
@@ -60,10 +61,11 @@ async def wait_user_city(message: types.Message, state: FSMContext):
             session.add(MainСity(user_id=message.from_user.id, city_name=message.text))
             session.commit()
             await message.answer(f'Вы добавили город {message.text}')
-            await state.clear()
     except Exception as e:
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
+    finally: 
+        await state.clear()
 
 
 # Комманда Получить погоду моего города
@@ -81,3 +83,35 @@ async def to_know_weather(message: types.Message):
     except Exception as e:
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
+
+
+@user_router.message(Command(keyboards_text.TEXT_change))
+async def change_city(message: types.Message, state: FSMContext):
+    try:
+        with Session(engine) as session:
+            user_city = session.query(MainСity).filter_by(user_id=message.from_user.id).first()
+            if user_city is not None:
+                # Просим ввести новый город
+                await message.answer(f'Укажите новый город')    
+                await state.set_state(City.wait_new_city)
+            else:
+                await message.answer('Укажите город через команду /add_city')
+    except Exception as e:
+        await message.answer(f'Ошибка функции {__name__}')
+        print(f'Ошибка {e}')
+
+@user_router.message(StateFilter(City.wait_new_city))
+async def new_city(message: types.Message, state: FSMContext):
+    try:
+        with Session(engine) as session:
+            # Добавляем город пользователя в бд
+            user_city = session.query(MainСity).filter_by(user_id=message.from_user.id).first()
+            user_city.city_name = message.text
+            session.commit()
+            await message.answer(f'Вы изменили город на: {message.text}')
+    except Exception as e:
+        await message.answer(f'Ошибка функции {__name__}')
+        print(f'Ошибка {e}')
+    finally: 
+        await state.clear()
+
