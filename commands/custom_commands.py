@@ -117,4 +117,22 @@ async def new_city(message: types.Message, state: FSMContext):
     finally: 
         await state.clear()
 
-# Добавить редис
+@user_router.message(F.text == keyboards_text.TEXT_profile)
+async def get_user_profile(message: types.Message):
+    user = redis_client.get(f'{message.from_user.id}')
+    if user:
+        return await message.answer(user)
+    try:
+        with Session(engine) as session:
+            user = session.query(User).filter_by(user_id=message.from_user.id).first()
+            user_profile = (
+                f'id: {user.user_id} \n'
+                f'Ник: {user.user_name}\n'
+                f'Город: {user.user_city.city_name}'
+            )
+            redis_client.setex(name=f'{message.from_user.id}', time=30, value=user_profile)
+            await message.answer(user_profile)
+
+    except Exception as e:
+        await message.answer(f'Ошибка функции {__name__}')
+        print(f'Ошибка {e}')
