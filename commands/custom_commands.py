@@ -1,4 +1,3 @@
-from redis import Redis
 from aiogram import Router, types, F
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -9,12 +8,12 @@ from json import loads, dumps
 from database.database import User, MainСity, engine
 from keyboard.reply_kb import keyboards_text
 from main_func.the_weather import get_weather
+from config.redis_init import redis_client
 
 class City(StatesGroup):
     wait_city = State()
     wait_new_city = State()
 
-redis_client = Redis() # Заменить при деплое
 user_router = Router()
 
 # Комманда /start
@@ -74,17 +73,18 @@ async def to_know_weather(message: types.Message):
     try:
         with Session(engine) as session:
             _user_city = session.query(MainСity).filter_by(user_id=message.from_user.id).first()
-            if _user_city is not None:
-                # Выводим погоду в городе
-                await message.answer(await get_weather(_user_city.city_name))
+            city = redis_client.get(_user_city.city_name)
+            if city:
+                await message.answer(city)
             else:
-                # говорим добавить город
-                await message.answer('Введи команду: "/weather"')
+                await message.answer(await get_weather(_user_city.city_name))
+
     except Exception as e:
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
 
 
+# Вход в состояние для смены города
 @user_router.message(Command(keyboards_text.TEXT_change))
 async def change_city(message: types.Message, state: FSMContext):
     try:
@@ -100,6 +100,8 @@ async def change_city(message: types.Message, state: FSMContext):
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
 
+
+# выход из состояния смены города и смена города
 @user_router.message(StateFilter(City.wait_new_city))
 async def new_city(message: types.Message, state: FSMContext):
     try:
@@ -115,3 +117,4 @@ async def new_city(message: types.Message, state: FSMContext):
     finally: 
         await state.clear()
 
+# Добавить редис

@@ -1,6 +1,8 @@
 from os import getenv
 from dotenv import load_dotenv
 import httpx
+# 
+from config.redis_init import redis_client
 
 load_dotenv()
 
@@ -24,4 +26,5 @@ async def get_weather(user_city: str):
             f"☁️ {current_condition}\n"
             f"🌡 Температура: {current_temp_c}°C  (ощущается как {current_feelslike_c}°C)\n"
             f"💧 Влажность: {current_humidity}%")
+        redis_client.setex(name=user_city, time=10, value=weather_message)
         return weather_message
