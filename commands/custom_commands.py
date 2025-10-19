@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from json import loads, dumps
 # 
 from database.database import User, MainСity, engine
-from keyboard.reply_kb import keyboards_text
+from keyboard.reply_kb import keyboards_text, main_keyboard
 from main_func.the_weather import get_weather
 from config.redis_init import redis_client
 
@@ -23,12 +23,12 @@ async def command_start(message: types.Message):
         with Session(engine) as session:
             user = session.query(User).filter_by(user_id=message.from_user.id).first()
             if user is not None:
-                await message.answer(f'И сново привет {message.from_user.username}')
+                await message.answer(f'И сново привет {message.from_user.username}', reply_markup=main_keyboard)
             else:
                 user_id, user_name = message.from_user.id, message.from_user.username
                 session.add(User(user_id=user_id, user_name=user_name))
                 session.commit()
-                await message.answer(f'Привет {user_name}')
+                await message.answer(f'Привет {user_name}', reply_markup=main_keyboard)
     except Exception as e:
         await message.answer(f'Ошибка функции {__name__}')
         print(f'Ошибка {e}')
@@ -68,7 +68,7 @@ async def wait_user_city(message: types.Message, state: FSMContext):
 
 
 # Комманда Получить погоду моего города
-@user_router.message(Command(keyboards_text.TEXT_weather))
+@user_router.message(F.text == keyboards_text.TEXT_weather)
 async def to_know_weather(message: types.Message):
     try:
         with Session(engine) as session:
@@ -85,7 +85,7 @@ async def to_know_weather(message: types.Message):
 
 
 # Вход в состояние для смены города
-@user_router.message(Command(keyboards_text.TEXT_change))
+@user_router.message(F.text == keyboards_text.TEXT_change)
 async def change_city(message: types.Message, state: FSMContext):
     try:
         with Session(engine) as session:
