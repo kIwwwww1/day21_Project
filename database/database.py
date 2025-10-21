@@ -1,8 +1,7 @@
 from os import getenv
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, ForeignKey, BigInteger
-from sqlalchemy.orm import Session, declarative_base, relationship, Mapped, mapped_column
-# 
+from sqlalchemy.orm import declarative_base, relationship, Mapped, mapped_column
 
 load_dotenv()
 

@@ -117,6 +117,8 @@ async def new_city(message: types.Message, state: FSMContext):
     finally: 
         await state.clear()
 
+
+# Комманда получения профиля
 @user_router.message(F.text == keyboards_text.TEXT_profile)
 async def get_user_profile(message: types.Message):
     user = redis_client.get(f'{message.from_user.id}')
@@ -130,7 +132,7 @@ async def get_user_profile(message: types.Message):
                 f'Ник: {user.user_name}\n'
                 f'Город: {user.user_city.city_name}'
             )
-            redis_client.setex(name=f'{message.from_user.id}', time=30, value=user_profile)
+            redis_client.setex(name=f'{message.from_user.id}', time=20, value=user_profile)
             await message.answer(user_profile)
 
     except Exception as e:
